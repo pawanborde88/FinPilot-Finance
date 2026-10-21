@@ -15,12 +15,10 @@ public static class DependencyInjection
             ?? configuration["DATABASE_URL"]
             ?? throw new InvalidOperationException("No database connection string found in 'DefaultConnection' or 'DATABASE_URL'.");
 
-        var isPostgreSql = rawConnection.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
-                           rawConnection.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase) ||
-                           rawConnection.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
-                           string.Equals(configuration["DB_PROVIDER"], "PostgreSQL", StringComparison.OrdinalIgnoreCase);
+        var isSqlServer = string.Equals(configuration["DB_PROVIDER"], "SqlServer", StringComparison.OrdinalIgnoreCase) ||
+                          (rawConnection.Contains("Server=", StringComparison.OrdinalIgnoreCase) && !rawConnection.Contains("Host=", StringComparison.OrdinalIgnoreCase));
 
-        if (isPostgreSql)
+        if (!isSqlServer)
         {
             var npgsqlConnectionString = ParsePostgreSqlConnectionString(rawConnection);
             services.AddDbContext<ApplicationDbContext>(options =>

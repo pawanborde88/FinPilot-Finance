@@ -41,6 +41,23 @@ using (var scope = app.Services.CreateScope())
             {
                 logger.LogInformation("PostgreSQL tables already exist.");
             }
+
+            try
+            {
+                await dbContext.Database.ExecuteSqlRawAsync(@"
+                    CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+                        ""MigrationId"" character varying(150) NOT NULL,
+                        ""ProductVersion"" character varying(32) NOT NULL,
+                        CONSTRAINT ""PK___EFMigrationsHistory"" PRIMARY KEY (""MigrationId"")
+                    );
+                    INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                    VALUES ('20261021122751_InitialPostgreSqlCreate', '10.0.10')
+                    ON CONFLICT (""MigrationId"") DO NOTHING;");
+            }
+            catch (Exception historyEx)
+            {
+                logger.LogWarning(historyEx, "Unable to record initial migration history entry.");
+            }
         }
         else if (dbContext.Database.IsSqlServer())
         {
