@@ -1,5 +1,7 @@
 using FinPilot.Application;
 using FinPilot.Infrastructure;
+using FinPilot.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,26 +18,45 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Ensure Database Schema is up to date on startup
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "FinPilot API v1");
-        options.RoutePrefix = "swagger";
-    });
+        var dbContext = services.GetRequiredService<ApplicationDbContext>();
+        if (dbContext.Database.IsNpgsql())
+        {
+            logger.LogInformation("Applying PostgreSQL database schema initialization...");
+            await dbContext.Database.EnsureCreatedAsync();
+        }
+        else if (dbContext.Database.IsSqlServer())
+        {
+            logger.LogInformation("Applying SQL Server database migrations...");
+            await dbContext.Database.MigrateAsync();
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while initializing the database.");
+    }
 }
+
+// Enable Swagger in Development and Production (e.g. Render)
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "FinPilot API v1");
+    options.RoutePrefix = "swagger";
+});
+
+// Redirect root to Swagger
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-
-// Redirect root to Swagger in development
-if (app.Environment.IsDevelopment())
-{
-    app.MapGet("/", () => Results.Redirect("/swagger"));
-}
 
 app.MapControllers();
 
