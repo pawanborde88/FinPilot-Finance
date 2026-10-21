@@ -3,6 +3,7 @@ using FinPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace FinPilot.Infrastructure;
 
@@ -48,12 +49,22 @@ public static class DependencyInjection
 
         var uri = new Uri(connectionString);
         var userInfo = uri.UserInfo.Split(':');
-        var username = userInfo[0];
-        var password = userInfo.Length > 1 ? userInfo[1] : string.Empty;
+        var username = Uri.UnescapeDataString(userInfo[0]);
+        var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
         var database = uri.AbsolutePath.TrimStart('/');
         var host = uri.Host;
         var port = uri.Port > 0 ? uri.Port : 5432;
 
-        return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = host,
+            Port = port,
+            Database = string.IsNullOrWhiteSpace(database) ? "postgres" : database,
+            Username = username,
+            Password = password,
+            SslMode = SslMode.Require
+        };
+
+        return builder.ConnectionString;
     }
 }

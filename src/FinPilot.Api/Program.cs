@@ -2,6 +2,8 @@ using FinPilot.Application;
 using FinPilot.Infrastructure;
 using FinPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,8 +30,17 @@ using (var scope = app.Services.CreateScope())
         var dbContext = services.GetRequiredService<ApplicationDbContext>();
         if (dbContext.Database.IsNpgsql())
         {
-            logger.LogInformation("Applying PostgreSQL database schema initialization...");
-            await dbContext.Database.EnsureCreatedAsync();
+            logger.LogInformation("Applying PostgreSQL database schema initialization in Supabase...");
+            var databaseCreator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
+            try
+            {
+                await databaseCreator.CreateTablesAsync();
+                logger.LogInformation("PostgreSQL tables successfully created.");
+            }
+            catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P07")
+            {
+                logger.LogInformation("PostgreSQL tables already exist.");
+            }
         }
         else if (dbContext.Database.IsSqlServer())
         {
