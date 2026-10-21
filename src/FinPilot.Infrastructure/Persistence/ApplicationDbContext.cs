@@ -1,5 +1,6 @@
 using FinPilot.Application.Common.Interfaces;
 using FinPilot.Domain.Entities;
+using FinPilot.Domain.Organizations;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinPilot.Infrastructure.Persistence;
@@ -12,6 +13,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     }
 
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<Organization> Organizations => Set<Organization>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
