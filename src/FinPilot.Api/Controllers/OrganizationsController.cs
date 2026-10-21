@@ -1,4 +1,4 @@
-using FinPilot.Application.Common.Interfaces;
+using FinPilot.Application.Abstractions;
 using FinPilot.Application.Organizations.Dtos;
 using FinPilot.Domain.Organizations;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +11,9 @@ namespace FinPilot.Api.Controllers;
 [Produces("application/json")]
 public class OrganizationsController : ControllerBase
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IAppDbContext _context;
 
-    public OrganizationsController(IApplicationDbContext context)
+    public OrganizationsController(IAppDbContext context)
     {
         _context = context;
     }

@@ -1,3 +1,4 @@
+using FinPilot.Application.Abstractions;
 using FinPilot.Application.Common.Interfaces;
 using FinPilot.Domain.Entities;
 using FinPilot.Domain.Organizations;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinPilot.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext, IApplicationDbContext
+public class ApplicationDbContext : DbContext, IAppDbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)

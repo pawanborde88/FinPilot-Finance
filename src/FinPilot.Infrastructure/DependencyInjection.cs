@@ -1,3 +1,4 @@
+using FinPilot.Application.Abstractions;
 using FinPilot.Application.Common.Interfaces;
 using FinPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,7 @@ public static class DependencyInjection
                     b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
         }
 
+        services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
         return services;
