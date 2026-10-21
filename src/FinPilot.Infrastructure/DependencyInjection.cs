@@ -22,18 +22,26 @@ public static class DependencyInjection
         if (!isSqlServer)
         {
             var npgsqlConnectionString = ParsePostgreSqlConnectionString(rawConnection);
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(npgsqlConnectionString, b =>
+                    b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(npgsqlConnectionString, b =>
                     b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
         }
         else
         {
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(rawConnection, b =>
+                    b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(rawConnection, b =>
                     b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
         }
 
-        services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+        services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
         return services;
