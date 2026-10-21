@@ -1,9 +1,3 @@
-databases:
-  - name: finpilot-db
-    databaseName: finpilot
-    user: finpilot_user
-    plan: free
-
 services:
   - type: web
     name: finpilot-api
@@ -14,7 +8,7 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
+      - key: DB_PROVIDER
+        value: PostgreSQL
       - key: DATABASE_URL
-        fromDatabase:
-          name: finpilot-db
-          property: connectionString
+        value: postgresql://postgres:wLv%2CAS!X.KX%3Ff84@db.kguqtvcfjamhloxnjawl.supabase.co:5432/postgres
