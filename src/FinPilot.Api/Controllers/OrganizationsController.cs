@@ -34,12 +34,12 @@ public class OrganizationsController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves an organization by ID.
+    /// Retrieves an organization by its unique Guid identifier.
     /// </summary>
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(Organization), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Organization>> GetById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<Organization>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var organization = await _context.Organizations
             .AsNoTracking()
@@ -47,7 +47,28 @@ public class OrganizationsController : ControllerBase
 
         if (organization == null)
         {
-            return NotFound(new { message = $"Organization with ID {id} was not found." });
+            return NotFound(new { message = $"Organization with ID '{id}' was not found." });
+        }
+
+        return Ok(organization);
+    }
+
+    /// <summary>
+    /// Retrieves an organization by its unique URL slug.
+    /// </summary>
+    [HttpGet("slug/{slug}")]
+    [ProducesResponseType(typeof(Organization), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Organization>> GetBySlug(string slug, CancellationToken cancellationToken)
+    {
+        var normalizedSlug = slug.Trim().ToLowerInvariant();
+        var organization = await _context.Organizations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Slug == normalizedSlug, cancellationToken);
+
+        if (organization == null)
+        {
+            return NotFound(new { message = $"Organization with slug '{slug}' was not found." });
         }
 
         return Ok(organization);
@@ -59,43 +80,96 @@ public class OrganizationsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(Organization), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Organization>> Create([FromBody] CreateOrganizationDto dto, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))
         {
-            return BadRequest(new { message = "Organization Name is required." });
+            return BadRequest(new { message = "Organization name is required." });
         }
 
-        var organization = new Organization
+        if (string.IsNullOrWhiteSpace(dto.Slug))
         {
-            Name = dto.Name.Trim(),
-            Code = dto.Code?.Trim(),
-            Description = dto.Description?.Trim(),
-            Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "USD" : dto.Currency.Trim().ToUpperInvariant(),
-            TimeZone = dto.TimeZone?.Trim(),
-            IsActive = true,
-            CreatedAtUtc = DateTime.UtcNow
-        };
+            return BadRequest(new { message = "Organization slug is required." });
+        }
 
-        _context.Organizations.Add(organization);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            var normalizedSlug = dto.Slug.Trim().ToLowerInvariant();
+            var exists = await _context.Organizations
+                .AnyAsync(o => o.Slug == normalizedSlug, cancellationToken);
 
-        return CreatedAtAction(nameof(GetById), new { id = organization.Id }, organization);
+            if (exists)
+            {
+                return Conflict(new { message = $"An organization with slug '{dto.Slug}' already exists." });
+            }
+
+            var organization = new Organization(dto.Name, dto.Slug);
+
+            _context.Organizations.Add(organization);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return CreatedAtAction(nameof(GetById), new { id = organization.Id }, organization);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>
-    /// Deletes an organization by ID.
+    /// Deactivates an organization.
     /// </summary>
-    [HttpDelete("{id:int}")]
+    [HttpPost("{id:guid}/deactivate")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
+    {
+        var organization = await _context.Organizations.FindAsync([id], cancellationToken);
+        if (organization == null)
+        {
+            return NotFound(new { message = $"Organization with ID '{id}' was not found." });
+        }
+
+        organization.Deactivate();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Activates an organization.
+    /// </summary>
+    [HttpPost("{id:guid}/activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
+    {
+        var organization = await _context.Organizations.FindAsync([id], cancellationToken);
+        if (organization == null)
+        {
+            return NotFound(new { message = $"Organization with ID '{id}' was not found." });
+        }
+
+        organization.Activate();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Deletes an organization by its unique Guid identifier.
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var organization = await _context.Organizations.FindAsync([id], cancellationToken);
 
         if (organization == null)
         {
-            return NotFound(new { message = $"Organization with ID {id} was not found." });
+            return NotFound(new { message = $"Organization with ID '{id}' was not found." });
         }
 
         _context.Organizations.Remove(organization);

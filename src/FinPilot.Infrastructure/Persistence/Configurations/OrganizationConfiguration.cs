@@ -9,10 +9,22 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
     public void Configure(EntityTypeBuilder<Organization> builder)
     {
         builder.HasKey(e => e.Id);
-        builder.Property(e => e.Name).IsRequired().HasMaxLength(200);
-        builder.Property(e => e.Code).HasMaxLength(50);
-        builder.Property(e => e.Description).HasMaxLength(500);
-        builder.Property(e => e.Currency).IsRequired().HasMaxLength(10).HasDefaultValue("USD");
-        builder.Property(e => e.TimeZone).HasMaxLength(50);
+
+        builder.Property(e => e.Name)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(e => e.Slug)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.HasIndex(e => e.Slug)
+            .IsUnique();
+
+        builder.Property(e => e.IsActive)
+            .IsRequired();
+
+        builder.Property(e => e.CreatedAtUtc)
+            .IsRequired();
     }
 }
